@@ -10,7 +10,7 @@ import TestimonialsSection from "./sections/testimonials";
 
 export default function LandingPage() {
 	return (
-		<div className="flex min-h-screen flex-col justify-content items-center">
+		<div className="flex min-h-screen flex-col w-full">
 			<Header />
 			<main className="flex-1">
 				<HeroSection />
