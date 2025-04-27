@@ -1,5 +1,5 @@
+import { Button } from "@/components/ui/button";
 import { ArrowRight, Clock, ShoppingBag, Star } from "lucide-react";
-import { Button } from "../../ui/button";
 import Image from "next/image";
 
 export default function PartnersSection() {

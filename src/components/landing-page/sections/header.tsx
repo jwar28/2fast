@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "../../ui/button";
 import { Menu, ShoppingBag, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const router = useRouter();
 
 	return (
 		<header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,7 +46,9 @@ export default function Header() {
 					<Button variant="default" className="bg-rose-500 hover:bg-rose-600">
 						Descargar App
 					</Button>
-					<Button variant="outline">Ver catalogo</Button>
+					<Button variant="outline" onClick={() => router.push("/explore")}>
+						Ver catalogo
+					</Button>
 				</nav>
 
 				<Button
