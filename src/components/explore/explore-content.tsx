@@ -6,98 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, User, Heart, Filter } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
-import type { Category, Store } from "@/lib/types";
-// Importar la función generateSlug
 import { generateSlug } from "@/lib/utils";
 import { CategoryCard } from "@/components/shared/category-card";
 import { LoginModal } from "@/components/shared/login-modal";
 import { MobileNav } from "@/components/shared/mobile-nav";
 import { ProductCard } from "@/components/shared/product-card";
+import { useStoreStore } from "@/stores/storeStore";
 
 export function ExploreContent() {
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showFilters, setShowFilters] = useState(false);
-	const [categories, setCategories] = useState<Category[]>([]);
-	const [restaurants, setRestaurants] = useState<Store[]>([]);
-	const [groceryStores, setGroceryStores] = useState<Store[]>([]);
-	const [pharmacies, setPharmacies] = useState<Store[]>([]);
-	const [loading, setLoading] = useState(true);
+
+	const { categories, restaurants, groceryStores, pharmacies, loading, fetchExploreData } =
+		useStoreStore();
 
 	useEffect(() => {
-		async function fetchData() {
-			try {
-				// Fetch categories
-				const { data: categoriesData, error: categoriesError } = await supabase
-					.from("categories")
-					.select("*")
-					.order("name");
-
-				if (categoriesError) throw categoriesError;
-				setCategories(categoriesData || []);
-
-				// Get category IDs
-				const restaurantCategory = categoriesData?.find(
-					(cat) => cat.name === "Restaurantes",
-				);
-				const groceryCategory = categoriesData?.find(
-					(cat) => cat.name === "Supermercado",
-				);
-				const pharmacyCategory = categoriesData?.find(
-					(cat) => cat.name === "Farmacia",
-				);
-
-				// Fetch restaurants
-				if (restaurantCategory) {
-					const { data: restaurantsData, error: restaurantsError } =
-						await supabase
-							.from("stores")
-							.select("*")
-							.eq("category_id", restaurantCategory.id)
-							.eq("is_active", true)
-							.order("rating", { ascending: false })
-							.limit(4);
-
-					if (restaurantsError) throw restaurantsError;
-					setRestaurants(restaurantsData || []);
-				}
-
-				// Fetch grocery stores
-				if (groceryCategory) {
-					const { data: groceryData, error: groceryError } = await supabase
-						.from("stores")
-						.select("*")
-						.eq("category_id", groceryCategory.id)
-						.eq("is_active", true)
-						.order("rating", { ascending: false })
-						.limit(4);
-
-					if (groceryError) throw groceryError;
-					setGroceryStores(groceryData || []);
-				}
-
-				// Fetch pharmacies
-				if (pharmacyCategory) {
-					const { data: pharmacyData, error: pharmacyError } = await supabase
-						.from("stores")
-						.select("*")
-						.eq("category_id", pharmacyCategory.id)
-						.eq("is_active", true)
-						.order("rating", { ascending: false })
-						.limit(4);
-
-					if (pharmacyError) throw pharmacyError;
-					setPharmacies(pharmacyData || []);
-				}
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setLoading(false);
-			}
-		}
-
-		fetchData();
-	}, []);
+		fetchExploreData();
+	}, [fetchExploreData]);
 
 	const handleAddToCart = () => {
 		setShowLoginModal(true);

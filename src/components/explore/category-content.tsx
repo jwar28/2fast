@@ -15,141 +15,61 @@ import {
 	Star,
 	Clock,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/utils";
-import type { Category, Store, Product } from "@/lib/types";
+import type { Store, Product } from "@/lib/types";
 import { usePathname } from "next/navigation";
 import { LoginModal } from "../shared/login-modal";
 import { MobileNav } from "../shared/mobile-nav";
 import { ProductCard } from "../shared/product-card";
 import { StoreProductCard } from "../shared/store-product-card";
-
-// Interfaz para agrupar productos por tienda
-interface StoreWithProducts {
-	store: Store;
-	products: Product[];
-}
+import { useCategoryStore } from "@/stores/categoryStore";
 
 export function CategoryContent() {
 	const pathname = usePathname();
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showFilters, setShowFilters] = useState(false);
-	const [category, setCategory] = useState<Category | null>(null);
-	const [categorySlug, setCategorySlug] = useState<string>("");
-	const [stores, setStores] = useState<Store[]>([]);
-	const [storesWithProducts, setStoresWithProducts] = useState<
-		StoreWithProducts[]
-	>([]);
-	const [loading, setLoading] = useState(true);
 	const [viewMode, setViewMode] = useState<"stores" | "products">("stores");
 
-	// Extraer el slug de la categoría de la URL
+	const {
+		category,
+		categorySlug,
+		stores,
+		storesWithProducts,
+		loading,
+		setCategorySlug,
+		fetchCategoryData,
+	} = useCategoryStore();
+
+	// Extraer slug de la URL
 	useEffect(() => {
 		if (pathname) {
-			// La URL será algo como /explore/categoria
 			const parts = pathname.split("/");
 			if (parts.length >= 3) {
 				const extractedCategorySlug = parts[2];
-				console.log("Extracted category slug from URL:", extractedCategorySlug);
 				setCategorySlug(extractedCategorySlug);
 			}
 		}
-	}, [pathname]);
+	}, [pathname, setCategorySlug]);
 
+	// Cargar datos de categoría al cambiar el slug
 	useEffect(() => {
-		async function fetchCategoryData() {
-			try {
-				// Si no tenemos un slug de categoría, no hacer nada
-				if (!categorySlug) {
-					return;
-				}
-
-				setLoading(true);
-				console.log("Fetching data for category slug:", categorySlug);
-
-				// Primero intentamos buscar todas las categorías
-				const { data: allCategories, error: categoriesError } = await supabase
-					.from("categories")
-					.select("*");
-
-				if (categoriesError) throw categoriesError;
-
-				// Encontrar la categoría que coincide con el slug
-				const matchingCategory = allCategories?.find((cat) => {
-					const generatedSlug = generateSlug(cat.name);
-					return generatedSlug === categorySlug;
-				});
-
-				if (matchingCategory) {
-					console.log("Found matching category:", matchingCategory.name);
-					setCategory(matchingCategory);
-
-					// Fetch stores for this category
-					const { data: storesData, error: storesError } = await supabase
-						.from("stores")
-						.select("*")
-						.eq("category_id", matchingCategory.id)
-						.eq("is_active", true)
-						.order("rating", { ascending: false });
-
-					if (storesError) throw storesError;
-					setStores(storesData || []);
-
-					// Fetch products for this category
-					// Necesitamos obtener los productos que pertenecen a tiendas de esta categoría
-					const storesWithProductsData: StoreWithProducts[] = [];
-
-					// Para cada tienda, obtenemos sus productos
-					for (const store of storesData || []) {
-						const { data: productsData, error: productsError } = await supabase
-							.from("products")
-							.select("*")
-							.eq("store_id", store.id)
-							.eq("is_active", true)
-							.order("is_featured", { ascending: false })
-							.limit(4); // Limitamos a 4 productos por tienda para la vista previa
-
-						if (productsError) throw productsError;
-
-						if (productsData && productsData.length > 0) {
-							storesWithProductsData.push({
-								store,
-								products: productsData,
-							});
-						}
-					}
-
-					setStoresWithProducts(storesWithProductsData);
-				} else {
-					console.error("Categoría no encontrada:", categorySlug);
-					// Aquí podrías redirigir a una página 404 o mostrar un mensaje
-				}
-			} catch (error) {
-				console.error("Error fetching category data:", error);
-			} finally {
-				setLoading(false);
-			}
+		if (categorySlug) {
+			fetchCategoryData(categorySlug);
 		}
-
-		fetchCategoryData();
-	}, [categorySlug]);
+	}, [categorySlug, fetchCategoryData]);
 
 	const handleAddToCart = () => {
 		setShowLoginModal(true);
 	};
 
-	// Función para formatear el nombre de la categoría para mostrar
 	const getCategoryDisplayName = () => {
 		if (category) return category.name;
-
-		// Si no tenemos la categoría, intentamos formatear el slug
 		if (!categorySlug) return "Categoría";
 
-		const categoryName = categorySlug.replace(/-/g, " ");
-		return categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+		const name = categorySlug.replace(/-/g, " ");
+		return name.charAt(0).toUpperCase() + name.slice(1);
 	};
 
-	// Si no tenemos un slug de categoría, mostrar un mensaje de carga
 	if (!categorySlug) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center">
