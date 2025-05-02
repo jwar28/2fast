@@ -29,15 +29,10 @@ export function StoreContent() {
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showFilters, setShowFilters] = useState(false);
 
-	const {
-		store,
-		products,
-		productCategories,
-		loading,
-		fetchStoreContent,
-	} = useStoreContentStore();
+	const { store, products, productCategories, loading, fetchStoreContent } =
+		useStoreContentStore();
 
-	// Extraer los slugs de la URL
+	// Extract URL slug
 	useEffect(() => {
 		if (pathname) {
 			const parts = pathname.split("/");
@@ -50,7 +45,7 @@ export function StoreContent() {
 		}
 	}, [pathname]);
 
-	// Llamar al fetch solo cuando tengamos los slugs
+	// Fetch when slug is available
 	useEffect(() => {
 		if (categorySlug && storeSlug) {
 			fetchStoreContent(categorySlug, storeSlug);
@@ -61,17 +56,20 @@ export function StoreContent() {
 		setShowLoginModal(true);
 	};
 
-	// Agrupar productos por categoría
+	// Group products by category
 	const getProductsByCategory = (categoryId: string) => {
 		return products.filter((product) =>
 			product.product_to_category?.some(
-				(relation: { category_id: string; }) => relation.category_id === categoryId,
+				(relation: { category_id: string }) =>
+					relation.category_id === categoryId,
 			),
 		);
 	};
 
 	const featuredProducts = products.filter((product) => product.is_featured);
-	const saleProducts = products.filter((product) => product.sale_price !== null);
+	const saleProducts = products.filter(
+		(product) => product.sale_price !== null,
+	);
 
 	if (!categorySlug || !storeSlug) {
 		return (
@@ -94,9 +92,17 @@ export function StoreContent() {
 							<ChevronLeft className="h-5 w-5" />
 							<span className="sr-only">Volver</span>
 						</Link>
-						<h1 className="text-lg font-bold">
-							{store?.name || "Cargando..."}
-						</h1>
+
+						<div className="flex items-center gap-3">
+							<Link href="/explore" className="flex items-center gap-2">
+								<ShoppingBag className="h-6 w-6 text-rose-500" />
+								<span className="text-xl font-bold text-rose-500">2Fast</span>
+							</Link>
+
+							<h1 className="text-xl font-bold">
+								{store?.name || "Cargando..."}
+							</h1>
+						</div>
 					</div>
 
 					<div className="hidden md:flex items-center gap-4 flex-1 max-w-md mx-4">

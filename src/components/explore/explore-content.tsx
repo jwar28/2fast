@@ -36,7 +36,7 @@ export function ExploreContent() {
 						<Link href="/" className="flex items-center gap-2">
 							<ShoppingBag className="h-6 w-6 text-rose-500" />
 							<span className="text-xl font-bold text-rose-500">
-								RappiClone
+								2Fast
 							</span>
 						</Link>
 					</div>
