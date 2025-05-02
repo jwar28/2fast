@@ -16,13 +16,11 @@ import {
 	Heart,
 	Info,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
-import { generateSlug } from "@/lib/utils";
-import type { Store, Product, ProductCategory } from "@/lib/types";
 import { usePathname } from "next/navigation";
 import { LoginModal } from "../shared/login-modal";
 import { MobileNav } from "../shared/mobile-nav";
 import { StoreProductCard } from "../shared/store-product-card";
+import { useStoreContentStore } from "@/stores/storeContentStore";
 
 export function StoreContent() {
 	const pathname = usePathname();
@@ -30,140 +28,51 @@ export function StoreContent() {
 	const [storeSlug, setStoreSlug] = useState<string>("");
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showFilters, setShowFilters] = useState(false);
-	const [store, setStore] = useState<Store | null>(null);
-	const [products, setProducts] = useState<Product[]>([]);
-	const [productCategories, setProductCategories] = useState<ProductCategory[]>(
-		[],
-	);
-	const [loading, setLoading] = useState(true);
 
-	// Extraer los slugs de categoría y tienda de la URL
+	const {
+		store,
+		products,
+		productCategories,
+		loading,
+		fetchStoreContent,
+	} = useStoreContentStore();
+
+	// Extraer los slugs de la URL
 	useEffect(() => {
 		if (pathname) {
-			// La URL será algo como /explore/categoria/tienda
 			const parts = pathname.split("/");
 			if (parts.length >= 4) {
 				const extractedCategorySlug = parts[2];
 				const extractedStoreSlug = parts[3];
-				console.log(
-					"Extracted from URL - Category:",
-					extractedCategorySlug,
-					"Store:",
-					extractedStoreSlug,
-				);
 				setCategorySlug(extractedCategorySlug);
 				setStoreSlug(extractedStoreSlug);
 			}
 		}
 	}, [pathname]);
 
+	// Llamar al fetch solo cuando tengamos los slugs
 	useEffect(() => {
-		async function fetchStoreData() {
-			try {
-				// Si no tenemos los slugs necesarios, no hacer nada
-				if (!categorySlug || !storeSlug) {
-					return;
-				}
-
-				setLoading(true);
-				console.log(
-					"Fetching data for store:",
-					storeSlug,
-					"in category:",
-					categorySlug,
-				);
-
-				// Primero intentamos buscar todas las tiendas
-				const { data: allStores, error: storesError } = await supabase
-					.from("stores")
-					.select("*");
-
-				if (storesError) throw storesError;
-
-				// Encontrar la tienda que coincide con el slug
-				const matchingStore = allStores?.find((store) => {
-					const generatedSlug = generateSlug(store.name);
-					return generatedSlug === storeSlug;
-				});
-
-				if (matchingStore) {
-					console.log("Found matching store:", matchingStore.name);
-					setStore(matchingStore);
-
-					// Fetch product categories for this store
-					const { data: categoriesData, error: categoriesError } =
-						await supabase
-							.from("product_categories")
-							.select("*")
-							.eq("store_id", matchingStore.id)
-							.order("name");
-
-					if (categoriesError) throw categoriesError;
-					setProductCategories(categoriesData || []);
-
-					// Fetch products for this store
-					const { data: productsData, error: productsError } = await supabase
-						.from("products")
-						.select(`
-              id, store_id, name, description, price, sale_price, image_url, 
-              is_featured, is_active, stock, created_at, updated_at,
-              product_to_category(category_id)
-            `)
-						.eq("store_id", matchingStore.id)
-						.eq("is_active", true)
-						.order("is_featured", { ascending: false });
-
-					if (productsError) throw productsError;
-					setProducts(
-						(productsData || []).map((product) => ({
-							...product,
-							product_to_category: (product.product_to_category || []).map(
-								(category) => ({
-									...category,
-									product_id: product.id, // Add missing product_id
-								}),
-							),
-						})) as Product[],
-					);
-				} else {
-					console.error("Tienda no encontrada:", storeSlug);
-					// Aquí podrías redirigir a una página 404 o mostrar un mensaje
-				}
-			} catch (error) {
-				console.error("Error fetching store data:", error);
-			} finally {
-				setLoading(false);
-			}
+		if (categorySlug && storeSlug) {
+			fetchStoreContent(categorySlug, storeSlug);
 		}
-
-		fetchStoreData();
-	}, [categorySlug, storeSlug]);
+	}, [categorySlug, storeSlug, fetchStoreContent]);
 
 	const handleAddToCart = () => {
 		setShowLoginModal(true);
 	};
 
-	// Group products by category
+	// Agrupar productos por categoría
 	const getProductsByCategory = (categoryId: string) => {
-		return products.filter((product) => {
-			// Verificar si el producto tiene la relación con esta categoría
-			if (!product.product_to_category) return false;
-
-			return product.product_to_category.some(
-				(relation) => relation.category_id === categoryId,
-			);
-		});
+		return products.filter((product) =>
+			product.product_to_category?.some(
+				(relation: { category_id: string; }) => relation.category_id === categoryId,
+			),
+		);
 	};
 
-	// Get featured products
 	const featuredProducts = products.filter((product) => product.is_featured);
+	const saleProducts = products.filter((product) => product.sale_price !== null);
 
-	// Get products with sale price
-	const saleProducts = products.filter(
-		(product) => product.sale_price !== null,
-	);
-
-	// Si no tenemos los slugs necesarios, mostrar un mensaje de carga
 	if (!categorySlug || !storeSlug) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center">

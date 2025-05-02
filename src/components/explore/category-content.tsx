@@ -16,7 +16,6 @@ import {
 	Clock,
 } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
-import type { Store, Product } from "@/lib/types";
 import { usePathname } from "next/navigation";
 import { LoginModal } from "../shared/login-modal";
 import { MobileNav } from "../shared/mobile-nav";

@@ -1,5 +1,12 @@
+import { supabase } from "@/lib/supabase/client";
 import { fetchAllCategories, findCategoryBySlug, fetchStoresByCategoryId } from "./categoryService";
 import { fetchProductsByStoreId } from "./productService";
+
+export async function fetchAllStores() {
+    const { data, error } = await supabase.from("stores").select("*");
+    if (error) throw error;
+    return data || [];
+}
 
 export async function fetchCategoryDataBySlug(slug: string) {
 	const allCategories = await fetchAllCategories();
